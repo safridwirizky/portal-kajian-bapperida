@@ -86,7 +86,7 @@ def render_kajian_form(
 ):
     """Render halaman tambah/edit kajian."""
     return render_template(
-        "add.html",
+        "kajian_form.html",
         form=form,
         is_edit=is_edit,
         kajian=kajian,
@@ -110,6 +110,38 @@ def inject_app_name():
     return {
         "APP_NAME": "Portal Kajian Bapperida Kabupaten Rote Ndao"
     }
+
+
+# ==============================================================================
+# TEMPLATE FILTERS
+# ==============================================================================
+
+@app.template_filter("format_tanggal")
+def format_tanggal(dt):
+
+    if dt is None:
+        return "-"
+
+    bulan = [
+        "Januari",
+        "Februari",
+        "Maret",
+        "April",
+        "Mei",
+        "Juni",
+        "Juli",
+        "Agustus",
+        "September",
+        "Oktober",
+        "November",
+        "Desember",
+    ]
+
+    return (
+        f"{dt.day} "
+        f"{bulan[dt.month - 1]} "
+        f"{dt.year}"
+    )
 
 
 # ==============================================================================
