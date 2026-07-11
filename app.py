@@ -106,7 +106,10 @@ with app.app_context():
 
 def get_kajian(id: int) -> Kajian:
     """Mengambil data kajian berdasarkan ID."""
-    return Kajian.query.get_or_404(id)
+    return db.get_or_404(
+        Kajian,
+        id,
+    )
 
 
 def render_kajian_form(
@@ -223,25 +226,67 @@ def simpan_kajian() -> ResponseReturnValue:
     if not form.validate_on_submit():
         return render_kajian_form(
             form=form,
-            is_edit=False
+            is_edit=False,
         )
 
     kajian = Kajian()
 
     save_kajian(
         kajian=kajian,
-        form=form
+        form=form,
     )
 
-    db.session.add(kajian)
-    db.session.commit()
+    kajian_folder_id = None
 
-    return redirect(
-        url_for(
-            "detail_kajian",
-            id=kajian.id
+    try:
+        kajian_folder_id = drive.create_kajian_folder(
+            tahun=kajian.tahun,
+            judul=kajian.judul,
         )
-    )
+
+        kajian.drive_folder_id = kajian_folder_id
+
+        db.session.add(kajian)
+        db.session.commit()
+
+    except Exception:
+        db.session.rollback()
+
+        if kajian_folder_id is not None:
+            try:
+                drive.delete(kajian_folder_id)
+            except Exception:
+                current_app.logger.exception(
+                    "Gagal menghapus orphan folder."
+                )
+
+        current_app.logger.exception(
+            "Gagal membuat kajian."
+        )
+
+        flash(
+            "Kajian gagal ditambahkan.",
+            "danger",
+        )
+
+        return render_kajian_form(
+            form=form,
+            is_edit=False,
+        )
+
+    else:
+
+        flash(
+            "Kajian berhasil ditambahkan.",
+            "success",
+        )
+
+        return redirect(
+            url_for(
+                "detail_kajian",
+                id=kajian.id,
+            )
+        )
 
 
 # ==============================================================================
@@ -342,7 +387,7 @@ def upload_dokumen(kajian_id: int) -> ResponseReturnValue:
 
         if drive_file_id is not None:
             try:
-                drive.delete_file(drive_file_id)
+                drive.delete(drive_file_id)
             except Exception:
                 current_app.logger.exception(
                     "Gagal menghapus orphan file."

@@ -151,7 +151,7 @@ class Dokumen(db.Model):
         return f"<Dokumen {self.id}: {self.nama_file}>"
     
     @property
-    def ekstensi(self) -> str:
+    def extension(self) -> str:
 
         return Path(
             self.nama_file
