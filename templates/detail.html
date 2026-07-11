@@ -17,7 +17,19 @@
 
 </div>
 
-<div class="card shadow-sm">
+<div class="card shadow-sm mb-4">
+
+    <div class="card-header">
+
+        <h5 class="mb-0">
+
+            <i class="bi bi-journal-text me-2"></i>
+
+            Informasi Kajian
+
+        </h5>
+
+    </div>
 
     <div class="card-body p-4">
 
@@ -52,7 +64,7 @@
 
         </h5>
 
-        <p class="mb-4" style="white-space: pre-line;">
+        <p class="pre-line mb-4">
 
             {{ kajian.deskripsi }}
 
@@ -68,21 +80,165 @@
 
         </h5>
 
-        <p class="mb-4" style="white-space: pre-line;">
+        <p class="pre-line mb-0">
 
             {{ kajian.hasil }}
 
         </p>
 
-        <hr>
+    </div>
 
-        <h5 class="mb-3">
+</div>
+
+{% if current_user.is_authenticated %}
+
+<div class="card shadow-sm mb-4">
+
+    <div class="card-header">
+
+        <h5 class="mb-0">
+
+            <i class="bi bi-upload me-2"></i>
+
+            Upload Dokumen
+
+        </h5>
+
+    </div>
+    
+    <div class="card-body">
+
+        <p class="text-muted small mb-4">
+
+            Unggah dokumen pendukung seperti laporan, infografis, atau lampiran.
+
+        </p>
+
+        <form
+            method="post"
+            action="{{ url_for('upload_dokumen', kajian_id=kajian.id) }}"
+            enctype="multipart/form-data"
+            novalidate
+        >
+
+            {{ form.hidden_tag() }}
+
+            <div class="mb-3">
+
+                {{ form.judul.label(class="form-label") }}
+
+                {% if form.judul.errors %}
+
+                    {{ form.judul(class="form-control is-invalid") }}
+
+                    <div class="invalid-feedback">
+
+                        {% for error in form.judul.errors %}
+
+                            {{ error }}
+
+                        {% endfor %}
+
+                    </div>
+
+                {% else %}
+
+                    {{ form.judul(class="form-control") }}
+
+                {% endif %}
+
+            </div>
+
+            <div class="mb-3">
+
+                {{ form.file.label(class="form-label") }}
+
+                {% if form.file.errors %}
+
+                    {{ form.file(class="form-control is-invalid") }}
+
+                    <div class="invalid-feedback">
+
+                        {% for error in form.file.errors %}
+
+                            {{ error }}
+
+                        {% endfor %}
+
+                    </div>
+
+                {% else %}
+
+                    {{ form.file(class="form-control") }}
+
+                {% endif %}
+
+            </div>
+
+            <div class="mb-3">
+
+                {{ form.urutan.label(class="form-label") }}
+
+                {% if form.urutan.errors %}
+
+                    {{ form.urutan(class="form-control is-invalid") }}
+
+                    <div class="invalid-feedback">
+
+                        {% for error in form.urutan.errors %}
+
+                            {{ error }}
+
+                        {% endfor %}
+
+                    </div>
+
+                {% else %}
+
+                    {{ form.urutan(class="form-control") }}
+
+                {% endif %}
+
+            </div>
+
+            <div class="text-end">
+
+                <button
+                    type="submit"
+                    class="btn btn-primary"
+                >
+
+                    <i class="bi bi-upload me-1"></i>
+
+                    Upload Dokumen
+
+                </button>
+
+            </div>
+
+        </form>
+
+    </div>
+
+</div>
+
+{% endif %}
+
+<div class="card shadow-sm">
+
+    <div class="card-header">
+
+        <h5 class="mb-0">
 
             <i class="bi bi-folder2-open me-2"></i>
 
-            Dokumen
+            Dokumen Publikasi
 
         </h5>
+
+    </div>
+
+    <div class="card-body">
 
         {% if kajian.dokumen %}
 
@@ -96,29 +252,53 @@
 
                         <div>
 
-                            {% if dokumen.mime_type.startswith("image/") %}
+                            <div class="fw-semibold">
 
-                                <i class="bi bi-image me-2"></i>
+                                {% if dokumen.is_image %}
 
-                            {% else %}
+                                    <i class="bi bi-image text-success me-2"></i>
 
-                                <i class="bi bi-file-earmark-pdf text-danger me-2"></i>
+                                {% elif dokumen.is_pdf %}
 
-                            {% endif %}
+                                    <i class="bi bi-file-earmark-pdf text-danger me-2"></i>
 
-                            {{ dokumen.nama }}
+                                {% else %}
+
+                                    <i class="bi bi-paperclip text-secondary me-2"></i>
+
+                                {% endif %}
+
+                                {{ dokumen.judul }}
+
+                            </div>
+
+                            <small class="text-muted text-break">
+
+                                {{ dokumen.nama_file }}
+
+                            </small>
 
                         </div>
 
-                        <a
-                            href="{{ url_for('download_dokumen', id=dokumen.id) }}"
-                            class="btn btn-outline-primary btn-sm"
-                        >
-                            <i class="bi bi-download me-1"></i>
+                        <div class="d-flex align-items-center gap-2">
 
-                            Download
+                            <span class="badge bg-light text-dark">
 
-                        </a>
+                                {{ dokumen.extension[1:] | upper }}
+
+                            </span>
+
+                            <a
+                                href="{{ url_for('download_dokumen', id=dokumen.id) }}"
+                                class="btn btn-outline-primary btn-sm"
+                            >
+                                <i class="bi bi-download me-1"></i>
+
+                                Download
+
+                            </a>
+
+                        </div>
 
                     </div>
 
@@ -136,7 +316,15 @@
 
                 <p class="text-muted mt-3 mb-0">
 
-                    Belum ada dokumen yang dipublikasikan.
+                    {% if current_user.is_authenticated %}
+
+                        Belum ada dokumen. Silakan unggah dokumen pertama untuk kajian ini.
+
+                    {% else %}
+
+                        Belum ada dokumen yang dipublikasikan.
+
+                    {% endif %}
 
                 </p>
 

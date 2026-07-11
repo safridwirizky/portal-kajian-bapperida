@@ -229,30 +229,3 @@ class GoogleDrive:
         self.TOKEN_FILE.write_text(
             credentials.to_json()
         )
-
-
-if __name__ == "__main__":
-
-    drive = GoogleDrive()
-
-    folder_id = drive.get_or_create_folder(
-        "Portal Kajian"
-    )
-
-    with open(
-        "README.md",
-        "rb",
-    ) as stream:
-
-        file = DriveFile(
-            filename="README.md",
-            stream=stream,
-            mimetype="text/markdown",
-        )
-
-        file_id = drive.upload_file(
-            folder_id=folder_id,
-            file=file,
-        )
-
-    print(file_id)

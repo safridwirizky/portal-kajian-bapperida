@@ -1,13 +1,34 @@
+from datetime import datetime
 import os
 
-from flask import Flask, redirect, render_template, url_for
+from flask import current_app, Flask, flash, redirect, render_template, url_for
+from flask.typing import ResponseReturnValue
 from flask_bootstrap import Bootstrap5
 from flask_login import LoginManager, login_required
 
 from auth import auth_bp
-from forms import KajianForm, csrf
-from models import Kajian, User, db
+from forms import DokumenForm, KajianForm, csrf
+from models import Dokumen, Kajian, User, db
 from services import DriveFile, drive
+
+
+DEFAULT_ADMIN_USERNAME = "admin"
+DEFAULT_ADMIN_PASSWORD = "admin123"
+
+BULAN = (
+    "Januari",
+    "Februari",
+    "Maret",
+    "April",
+    "Mei",
+    "Juni",
+    "Juli",
+    "Agustus",
+    "September",
+    "Oktober",
+    "November",
+    "Desember",
+)
 
 
 # ==============================================================================
@@ -16,7 +37,10 @@ from services import DriveFile, drive
 
 app = Flask(__name__)
 
-app.config["SECRET_KEY"] = "Ini rahasia"
+app.config["SECRET_KEY"] = os.getenv(
+    "SECRET_KEY",
+    "development-secret",
+)
 
 app.config["SQLALCHEMY_DATABASE_URI"] = (
     "sqlite:///" + os.path.join(app.instance_path, "kajian.db")
@@ -48,21 +72,27 @@ def load_user(user_id):
 # SEED
 # ==============================================================================
 
-def seed_admin():
-    admin = User.query.filter_by(username="admin").first()
+def seed_admin() -> None:
+    """Membuat akun admin default jika belum tersedia."""
 
-    if admin is None:
-        admin = User(
-            username="admin",
-            role="admin"
-        )
+    admin = User.query.filter_by(
+        username=DEFAULT_ADMIN_USERNAME,
+    ).first()
 
-        admin.set_password("admin123")
+    if admin:
+        return
 
-        db.session.add(admin)
-        db.session.commit()
+    admin = User(
+        username=DEFAULT_ADMIN_USERNAME,
+        role="admin",
+    )
 
-        print("✓ Default admin berhasil dibuat.")
+    admin.set_password(DEFAULT_ADMIN_PASSWORD)
+
+    db.session.add(admin)
+    db.session.commit()
+
+    print("✓ Default admin berhasil dibuat.")
 
 
 with app.app_context():
@@ -97,7 +127,7 @@ def render_kajian_form(
 def save_kajian(
     kajian: Kajian,
     form: KajianForm,
-):
+) -> None:
     """Mengisi model Kajian dari form."""
 
     kajian.judul = form.judul.data
@@ -107,7 +137,7 @@ def save_kajian(
 
 
 @app.context_processor
-def inject_app_name():
+def inject_app_name() -> dict[str, str]:
     return {
         "APP_NAME": "Portal Kajian Bapperida Kabupaten Rote Ndao"
     }
@@ -118,29 +148,16 @@ def inject_app_name():
 # ==============================================================================
 
 @app.template_filter("format_tanggal")
-def format_tanggal(dt):
+def format_tanggal(
+    dt: datetime | None,
+) -> str:
 
     if dt is None:
         return "-"
 
-    bulan = [
-        "Januari",
-        "Februari",
-        "Maret",
-        "April",
-        "Mei",
-        "Juni",
-        "Juli",
-        "Agustus",
-        "September",
-        "Oktober",
-        "November",
-        "Desember",
-    ]
-
     return (
         f"{dt.day} "
-        f"{bulan[dt.month - 1]} "
+        f"{BULAN[dt.month - 1]} "
         f"{dt.year}"
     )
 
@@ -150,15 +167,15 @@ def format_tanggal(dt):
 # ==============================================================================
 
 @app.get("/")
-def home():
+def home() -> str:
 
     kajian_list = (
-    Kajian.query
-    .order_by(
-        Kajian.tahun.desc(),
-        Kajian.judul.asc()
-    )
-    .all()
+        Kajian.query
+        .order_by(
+            Kajian.tahun.desc(),
+            Kajian.judul.asc(),
+        )
+        .all()
     )
 
     return render_template(
@@ -168,13 +185,16 @@ def home():
 
 
 @app.get("/kajian/<int:id>")
-def detail_kajian(id):
+def detail_kajian(id: int) -> str:
 
     kajian = get_kajian(id)
 
+    form = DokumenForm()
+
     return render_template(
         "detail.html",
-        kajian=kajian
+        kajian=kajian,
+        form=form,
     )
 
 
@@ -184,7 +204,7 @@ def detail_kajian(id):
 
 @app.get("/kajian/tambah")
 @login_required
-def tambah_kajian():
+def tambah_kajian() -> str:
 
     form = KajianForm()
 
@@ -196,7 +216,7 @@ def tambah_kajian():
 
 @app.post("/kajian/tambah")
 @login_required
-def simpan_kajian():
+def simpan_kajian() -> ResponseReturnValue:
 
     form = KajianForm()
 
@@ -230,7 +250,7 @@ def simpan_kajian():
 
 @app.get("/kajian/<int:id>/edit")
 @login_required
-def edit_kajian(id):
+def edit_kajian(id: int) -> str:
 
     kajian = get_kajian(id)
 
@@ -247,7 +267,7 @@ def edit_kajian(id):
 
 @app.post("/kajian/<int:id>/edit")
 @login_required
-def update_kajian(id):
+def update_kajian(id: int) -> ResponseReturnValue:
 
     kajian = get_kajian(id)
 
@@ -274,52 +294,82 @@ def update_kajian(id):
         )
     )
 
-'''
+
 # ==============================================================================
 # UPLOAD FILE KAJIAN
 # ==============================================================================
 
-@app.post("/kajian/<int:id>/upload")
+@app.post("/kajian/<int:kajian_id>/dokumen")
 @login_required
-def upload_file_kajian(id):
+def upload_dokumen(kajian_id: int) -> ResponseReturnValue:
+    kajian = get_kajian(kajian_id)
 
-    kajian = get_kajian(id)
+    form = DokumenForm()
 
-    if not kajian:
-        abort(404)
-
-    file = request.files.get("file")
-
-    if not file:
-        abort(400)
-
-    upload_file = UploadFile(
-        filename=file.filename,
-        stream=file.stream,
-        mimetype=file.content_type
-    )
-
-    file_id = drive.upload_file(
-        folder_id=kajian.folder_id,
-        file=upload_file
-    )
+    if not form.validate_on_submit():
+        return render_template(
+            "detail.html",
+            kajian=kajian,
+            form=form,
+        )
 
     uploaded = DriveFile.from_upload(
-        form.file.data
+        form.file.data,
     )
 
-    drive_file_id = drive.upload_file(
-        folder_id=kajian.drive_folder_id,
-        file=uploaded,
-    )
+    drive_file_id = None
+
+    try:
+        drive_file_id = drive.upload_file(
+            folder_id=kajian.drive_folder_id,
+            file=uploaded,
+        )
+
+        dokumen = Dokumen(
+            kajian=kajian,
+            judul=form.judul.data,
+            nama_file=uploaded.filename,
+            mime_type=uploaded.mimetype,
+            urutan=form.urutan.data,
+            drive_file_id=drive_file_id,
+        )
+
+        db.session.add(dokumen)
+        db.session.commit()
+
+    except Exception:
+        db.session.rollback()
+
+        if drive_file_id is not None:
+            try:
+                drive.delete_file(drive_file_id)
+            except Exception:
+                current_app.logger.exception(
+                    "Gagal menghapus orphan file."
+                )
+
+        current_app.logger.exception(
+            "Gagal mengunggah dokumen."
+        )
+
+        flash(
+            "Dokumen gagal diunggah.",
+            "danger",
+        )
+
+    else:
+        flash(
+            "Dokumen berhasil diunggah.",
+            "success",
+        )
 
     return redirect(
         url_for(
             "detail_kajian",
-            id=kajian.id
+            id=kajian.id,
         )
     )
-'''
+
 
 # ==============================================================================
 # HAPUS KAJIAN
@@ -327,7 +377,7 @@ def upload_file_kajian(id):
 
 @app.post("/kajian/<int:id>/hapus")
 @login_required
-def hapus_kajian(id):
+def hapus_kajian(id: int) -> ResponseReturnValue:
 
     kajian = get_kajian(id)
 

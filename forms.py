@@ -1,6 +1,11 @@
 from flask_wtf import FlaskForm
 from flask_wtf.csrf import CSRFProtect
-from flask_wtf.file import FileAllowed, FileField
+
+from flask_wtf.file import (
+    FileAllowed,
+    FileField,
+    FileRequired,
+)
 
 from wtforms import (
     BooleanField,
@@ -13,8 +18,18 @@ from wtforms import (
 
 from wtforms.validators import (
     DataRequired,
+    Length,
     NumberRange,
 )
+
+
+ALLOWED_DOCUMENT_EXTENSIONS = (
+    "pdf",
+    "png",
+    "jpg",
+    "jpeg",
+)
+
 
 csrf = CSRFProtect()
 
@@ -22,28 +37,49 @@ csrf = CSRFProtect()
 class KajianForm(FlaskForm):
     judul = StringField(
         "Judul Kajian",
-        validators=[DataRequired()]
+        validators=[
+            DataRequired(
+                message="Judul wajib diisi."
+            ),
+            Length(max=255),
+        ]
     )
 
     tahun = IntegerField(
         "Tahun",
         validators=[
-            DataRequired(),
+            DataRequired(
+                message="Tahun wajib diisi."
+            ),
             NumberRange(
                 min=2000,
-                max=2100
-            )
+                max=2100,
+            ),
         ]
     )
 
     deskripsi = TextAreaField(
         "Deskripsi Kajian",
-        validators=[DataRequired()]
+        validators=[
+            DataRequired(
+                message="Deskripsi wajib diisi."
+            )
+        ],
+        render_kw={
+            "rows": 5
+        }
     )
 
     hasil = TextAreaField(
         "Hasil Kajian",
-        validators=[DataRequired()]
+        validators=[
+            DataRequired(
+                message="Hasil wajib diisi."
+            )
+        ],
+        render_kw={
+            "rows": 5
+        }
     )
 
     submit = SubmitField(
@@ -54,15 +90,20 @@ class KajianForm(FlaskForm):
 class DokumenForm(FlaskForm):
     judul = StringField(
         "Judul Dokumen",
-        validators=[DataRequired()]
+        validators=[
+            DataRequired(
+                message="Judul dokumen wajib diisi."
+            ),
+            Length(max=255),
+        ]
     )
 
     file = FileField(
         "File",
         validators=[
-            DataRequired(),
+            FileRequired(),
             FileAllowed(
-                ["pdf", "png", "jpg", "jpeg"],
+                ALLOWED_DOCUMENT_EXTENSIONS,
                 "File harus berupa PDF atau gambar."
             )
         ]
@@ -72,9 +113,14 @@ class DokumenForm(FlaskForm):
         "Urutan",
         default=1,
         validators=[
-            DataRequired(),
+            DataRequired(
+                message="Urutan wajib diisi."
+            ),
             NumberRange(min=1)
-        ]
+        ],
+        render_kw={
+            "min": 1,
+        },
     )
 
     submit = SubmitField(
@@ -85,7 +131,11 @@ class DokumenForm(FlaskForm):
 class LoginForm(FlaskForm):
     username = StringField(
         "Username",
-        validators=[DataRequired()],
+        validators=[
+            DataRequired(
+                message="Username wajib diisi."
+            )
+        ],
         render_kw={
             "autocomplete": "username"
         }
@@ -93,7 +143,11 @@ class LoginForm(FlaskForm):
 
     password = PasswordField(
         "Password",
-        validators=[DataRequired()],
+        validators=[
+            DataRequired(
+                message="Password wajib diisi."
+            )
+        ],
         render_kw={
             "autocomplete": "current-password"
         }

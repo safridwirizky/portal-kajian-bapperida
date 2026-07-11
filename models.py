@@ -1,4 +1,5 @@
 from datetime import datetime
+from pathlib import Path
 
 from flask_login import UserMixin
 from flask_sqlalchemy import SQLAlchemy
@@ -82,7 +83,7 @@ class Kajian(db.Model):
 
     drive_folder_id: Mapped[str] = mapped_column(
         String(255),
-        nullable=True
+        nullable=False
     )
 
     dokumen: Mapped[list["Dokumen"]] = relationship(
@@ -92,6 +93,10 @@ class Kajian(db.Model):
         order_by="Dokumen.urutan"
     )
 
+    def __repr__(self):
+
+        return f"<Kajian {self.id}: {self.judul}>"
+
 
 class Dokumen(db.Model):
     __tablename__ = "dokumen"
@@ -100,7 +105,8 @@ class Dokumen(db.Model):
 
     kajian_id: Mapped[int] = mapped_column(
         ForeignKey("kajian.id"),
-        nullable=False
+        nullable=False,
+        index=True
     )
 
     judul: Mapped[str] = mapped_column(
@@ -131,10 +137,31 @@ class Dokumen(db.Model):
 
     drive_file_id: Mapped[str] = mapped_column(
         String(255),
-        nullable=True
+        nullable=False,
+        unique=True
     )
 
     kajian: Mapped["Kajian"] = relationship(
         "Kajian",
         back_populates="dokumen"
     )
+
+    def __repr__(self):
+
+        return f"<Dokumen {self.id}: {self.nama_file}>"
+    
+    @property
+    def ekstensi(self) -> str:
+
+        return Path(
+            self.nama_file
+        ).suffix.lower()
+
+    @property
+    def is_pdf(self):
+
+        return self.mime_type == "application/pdf"
+    
+    @property
+    def is_image(self) -> bool:
+        return self.mime_type.startswith("image/")
