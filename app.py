@@ -7,6 +7,7 @@ from flask_login import LoginManager, login_required
 from auth import auth_bp
 from forms import KajianForm, csrf
 from models import Kajian, User, db
+from services import DriveFile, drive
 
 
 # ==============================================================================
@@ -273,6 +274,52 @@ def update_kajian(id):
         )
     )
 
+'''
+# ==============================================================================
+# UPLOAD FILE KAJIAN
+# ==============================================================================
+
+@app.post("/kajian/<int:id>/upload")
+@login_required
+def upload_file_kajian(id):
+
+    kajian = get_kajian(id)
+
+    if not kajian:
+        abort(404)
+
+    file = request.files.get("file")
+
+    if not file:
+        abort(400)
+
+    upload_file = UploadFile(
+        filename=file.filename,
+        stream=file.stream,
+        mimetype=file.content_type
+    )
+
+    file_id = drive.upload_file(
+        folder_id=kajian.folder_id,
+        file=upload_file
+    )
+
+    uploaded = DriveFile.from_upload(
+        form.file.data
+    )
+
+    drive_file_id = drive.upload_file(
+        folder_id=kajian.drive_folder_id,
+        file=uploaded,
+    )
+
+    return redirect(
+        url_for(
+            "detail_kajian",
+            id=kajian.id
+        )
+    )
+'''
 
 # ==============================================================================
 # HAPUS KAJIAN

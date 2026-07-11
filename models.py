@@ -80,6 +80,11 @@ class Kajian(db.Model):
         onupdate=func.now()
     )
 
+    drive_folder_id: Mapped[str] = mapped_column(
+        String(255),
+        nullable=True
+    )
+
     dokumen: Mapped[list["Dokumen"]] = relationship(
         "Dokumen",
         back_populates="kajian",
@@ -122,6 +127,11 @@ class Dokumen(db.Model):
     created_at: Mapped[datetime] = mapped_column(
         DateTime,
         server_default=func.now()
+    )
+
+    drive_file_id: Mapped[str] = mapped_column(
+        String(255),
+        nullable=True
     )
 
     kajian: Mapped["Kajian"] = relationship(
