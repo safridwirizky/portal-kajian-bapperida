@@ -1,22 +1,23 @@
 from io import BytesIO
 from pathlib import Path
+import requests
 
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
-from googleapiclient.discovery import build
-from googleapiclient.http import MediaIoBaseDownload, MediaIoBaseUpload
+from googleapiclient.discovery import Resource, build
+from googleapiclient.http import MediaIoBaseUpload
 
 from .drive_types import DriveFile
 
 
 class GoogleDrive:
 
-    _ROOT_FOLDER_NAME = "Portal Kajian"
+    ROOT_FOLDER_NAME = "Portal Kajian"
 
-    SCOPES = [
+    SCOPES = (
         "https://www.googleapis.com/auth/drive",
-    ]
+    )
 
     BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -24,31 +25,67 @@ class GoogleDrive:
 
     TOKEN_FILE = BASE_DIR / "token.json"
 
-    def __init__(self):
-        self._service = None
+    def __init__(self) -> None:
+        self._credentials: Credentials | None = None
+        self._service: Resource | None = None
 
     # ==========================================================================
-    # Authentication
+    # Service
     # ==========================================================================
 
     @property
-    def service(self):
+    def service(self) -> Resource:
 
         if self._service is None:
-            self._service = self._authenticate()
+            self._service = build(
+                "drive",
+                "v3",
+                credentials=self.credentials,
+            )
 
         return self._service
+
+    @property
+    def credentials(self) -> Credentials:
+
+        if self._credentials is None:
+            self._credentials = self._authenticate()
+
+        return self._credentials
+
+    def _files(self):
+        return self.service.files()
 
     # ==========================================================================
     # Folder
     # ==========================================================================
+
+    def create_kajian_folder(
+        self,
+        tahun: int,
+        judul: str,
+    ) -> str:
+        """Membuat struktur folder kajian."""
+
+        portal_folder_id = self.get_or_create_folder(
+            self.ROOT_FOLDER_NAME,
+        )
+
+        tahun_folder_id = self.get_or_create_folder(
+            str(tahun),
+            parent_id=portal_folder_id,
+        )
+
+        return self.create_folder(
+            judul,
+            parent_id=tahun_folder_id,
+        )
 
     def get_or_create_folder(
         self,
         name: str,
         parent_id: str | None = None,
     ) -> str:
-        """Mengambil folder jika sudah ada, atau membuat folder baru."""
 
         folder_id = self._find_folder(
             name=name,
@@ -68,32 +105,10 @@ class GoogleDrive:
         name: str,
         parent_id: str | None = None,
     ) -> str:
-        """Selalu membuat folder baru."""
 
         return self._create_folder(
             name=name,
             parent_id=parent_id,
-        )
-    
-    def create_kajian_folder(
-        self,
-        tahun: int,
-        judul: str,
-    ) -> str:
-        """Membuat struktur folder kajian dan mengembalikan ID folder kajian."""
-
-        portal_folder_id = self.get_or_create_folder(
-            self._ROOT_FOLDER_NAME,
-        )
-
-        tahun_folder_id = self.get_or_create_folder(
-            str(tahun),
-            parent_id=portal_folder_id,
-        )
-
-        return self.create_folder(
-            name=judul,
-            parent_id=tahun_folder_id,
         )
 
     # ==========================================================================
@@ -105,7 +120,6 @@ class GoogleDrive:
         folder_id: str,
         file: DriveFile,
     ) -> str:
-        """Mengunggah file ke folder Google Drive."""
 
         media = MediaIoBaseUpload(
             fd=file.stream,
@@ -113,15 +127,13 @@ class GoogleDrive:
             resumable=True,
         )
 
-        metadata = {
-            "name": file.filename,
-            "parents": [folder_id],
-        }
-
         response = (
-            self.service.files()
+            self._files()
             .create(
-                body=metadata,
+                body={
+                    "name": file.filename,
+                    "parents": [folder_id],
+                },
                 media_body=media,
                 fields="id",
             )
@@ -129,44 +141,59 @@ class GoogleDrive:
         )
 
         return response["id"]
-    
+
     def download(
         self,
         file_id: str,
     ) -> BytesIO:
         """Mengunduh file dari Google Drive."""
 
-        request = (
-            self.service.files()
-            .get_media(
-                fileId=file_id,
+        credentials = self.credentials
+
+        if (
+            credentials.expired
+            and credentials.refresh_token
+        ):
+            credentials.refresh(
+                Request(),
             )
+
+            self._save_token(
+                credentials,
+            )
+
+        response = requests.get(
+            f"https://www.googleapis.com/drive/v3/files/{file_id}",
+            params={
+                "alt": "media",
+            },
+            headers={
+                "Authorization": (
+                    f"Bearer {credentials.token}"
+                ),
+            },
+            timeout=60,
         )
 
-        stream = BytesIO()
+        try:
+            response.raise_for_status()
 
-        downloader = MediaIoBaseDownload(
-            stream,
-            request,
+        except requests.HTTPError as exc:
+            raise RuntimeError(
+                f"Google Drive mengembalikan HTTP {exc.response.status_code}"
+            ) from exc
+
+        return BytesIO(
+            response.content,
         )
-
-        done = False
-
-        while not done:
-            _, done = downloader.next_chunk()
-
-        stream.seek(0)
-
-        return stream
 
     def delete(
         self,
         file_id: str,
     ) -> None:
-        """Menghapus file atau folder."""
 
         (
-            self.service.files()
+            self._files()
             .delete(
                 fileId=file_id,
             )
@@ -174,7 +201,7 @@ class GoogleDrive:
         )
 
     # ==========================================================================
-    # Private Methods
+    # Private
     # ==========================================================================
 
     def _find_folder(
@@ -182,7 +209,6 @@ class GoogleDrive:
         name: str,
         parent_id: str | None = None,
     ) -> str | None:
-        """Mencari folder berdasarkan nama."""
 
         safe_name = self._escape_query(name)
 
@@ -198,7 +224,7 @@ class GoogleDrive:
             )
 
         response = (
-            self.service.files()
+            self._files()
             .list(
                 q=" and ".join(query),
                 fields="files(id)",
@@ -222,7 +248,6 @@ class GoogleDrive:
         name: str,
         parent_id: str | None = None,
     ) -> str:
-        """Membuat folder baru."""
 
         metadata = {
             "name": name,
@@ -233,7 +258,7 @@ class GoogleDrive:
             metadata["parents"] = [parent_id]
 
         response = (
-            self.service.files()
+            self._files()
             .create(
                 body=metadata,
                 fields="id",
@@ -247,14 +272,17 @@ class GoogleDrive:
     def _escape_query(
         value: str,
     ) -> str:
+
         return value.replace(
             "'",
             "\\'",
         )
 
-    def _authenticate(self):
+    def _authenticate(
+        self,
+    ) -> Credentials:
 
-        credentials = None
+        credentials: Credentials | None = None
 
         if self.TOKEN_FILE.exists():
             credentials = Credentials.from_authorized_user_file(
@@ -287,15 +315,11 @@ class GoogleDrive:
                 credentials,
             )
 
-        return build(
-            "drive",
-            "v3",
-            credentials=credentials,
-        )
+        return credentials
 
     def _save_token(
         self,
-        credentials,
+        credentials: Credentials,
     ) -> None:
 
         self.TOKEN_FILE.write_text(
