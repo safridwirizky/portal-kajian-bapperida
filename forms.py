@@ -109,20 +109,6 @@ class DokumenForm(FlaskForm):
         ]
     )
 
-    urutan = IntegerField(
-        "Urutan",
-        default=1,
-        validators=[
-            DataRequired(
-                message="Urutan wajib diisi."
-            ),
-            NumberRange(min=1)
-        ],
-        render_kw={
-            "min": 1,
-        },
-    )
-
     submit = SubmitField(
         "Upload"
     )
@@ -160,3 +146,7 @@ class LoginForm(FlaskForm):
     submit = SubmitField(
         "Login"
     )
+
+
+class EmptyForm(FlaskForm):
+    pass

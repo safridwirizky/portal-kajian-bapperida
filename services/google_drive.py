@@ -187,23 +187,105 @@ class GoogleDrive:
             response.content,
         )
 
-    def delete(
+    def delete_file(
         self,
         file_id: str,
     ) -> None:
+        """Menghapus file dari Google Drive."""
 
-        (
-            self._files()
-            .delete(
-                fileId=file_id,
-            )
-            .execute()
+        self._delete(
+            file_id,
         )
+
+    def delete_folder(
+        self,
+        folder_id: str,
+    ) -> None:
+        """Menghapus folder dari Google Drive."""
+
+        parent_folder_id = self._get_parent_folder_id(
+            folder_id,
+        )
+
+        self._delete(
+            folder_id,
+        )
+
+        if (
+            parent_folder_id
+            and self._is_folder_empty(parent_folder_id)
+        ):
+            self._delete(
+                parent_folder_id,
+            )
 
     # ==========================================================================
     # Private
     # ==========================================================================
 
+    def _delete(
+        self,
+        resource_id: str,
+    ) -> None:
+        """Menghapus resource Google Drive."""
+
+        (
+            self._files()
+            .delete(
+                fileId=resource_id,
+            )
+            .execute()
+        )
+    
+    def _is_folder_empty(
+        self,
+        folder_id: str,
+    ) -> bool:
+        """Mengembalikan True jika folder tidak memiliki isi."""
+
+        response = (
+            self._files()
+            .list(
+                q=(
+                    f"'{folder_id}' in parents "
+                    "and trashed=false"
+                ),
+                fields="files(id)",
+                pageSize=1,
+            )
+            .execute()
+        )
+
+        return not response.get(
+            "files",
+            [],
+        )
+
+    def _get_parent_folder_id(
+        self,
+        folder_id: str,
+    ) -> str | None:
+        """Mengambil parent folder."""
+
+        response = (
+            self._files()
+            .get(
+                fileId=folder_id,
+                fields="parents",
+            )
+            .execute()
+        )
+
+        parents = response.get(
+            "parents",
+            [],
+        )
+
+        if not parents:
+            return None
+
+        return parents[0]
+    
     def _find_folder(
         self,
         name: str,

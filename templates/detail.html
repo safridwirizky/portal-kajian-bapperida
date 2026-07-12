@@ -175,32 +175,6 @@
 
             </div>
 
-            <div class="mb-3">
-
-                {{ form.urutan.label(class="form-label") }}
-
-                {% if form.urutan.errors %}
-
-                    {{ form.urutan(class="form-control is-invalid") }}
-
-                    <div class="invalid-feedback">
-
-                        {% for error in form.urutan.errors %}
-
-                            {{ error }}
-
-                        {% endfor %}
-
-                    </div>
-
-                {% else %}
-
-                    {{ form.urutan(class="form-control") }}
-
-                {% endif %}
-
-            </div>
-
             <div class="text-end">
 
                 <button
@@ -299,6 +273,30 @@
                             </a>
 
                         </div>
+
+                        {% if current_user.is_authenticated %}
+
+                        <form
+                            method="post"
+                            action="{{ url_for('hapus_dokumen', id=dokumen.id) }}"
+                            class="d-inline"
+                        >
+
+                            {{ form.csrf_token }}
+
+                            <button
+                                type="submit"
+                                class="btn btn-outline-danger btn-sm"
+                                onclick="return confirm('Hapus dokumen ini?')"
+                            >
+                                <i class="bi bi-trash"></i>
+
+                                Hapus
+                            </button>
+
+                        </form>
+
+                        {% endif %}
 
                     </div>
 

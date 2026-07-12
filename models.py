@@ -90,7 +90,7 @@ class Kajian(db.Model):
         "Dokumen",
         back_populates="kajian",
         cascade="all, delete-orphan",
-        order_by="Dokumen.urutan"
+        order_by="Dokumen.created_at"
     )
 
     def __repr__(self):
@@ -121,12 +121,6 @@ class Dokumen(db.Model):
 
     mime_type: Mapped[str] = mapped_column(
         String(100),
-        nullable=False
-    )
-
-    urutan: Mapped[int] = mapped_column(
-        Integer,
-        default=1,
         nullable=False
     )
 

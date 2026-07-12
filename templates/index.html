@@ -60,6 +60,10 @@
                         Judul Kajian
                     </th>
 
+                    <th>
+                        Aksi
+                    </th>
+
                 </tr>
 
             </thead>
@@ -82,6 +86,39 @@
                         >
                             {{ kajian.judul }}
                         </a>
+
+                    </td>
+
+                    <td>
+
+                        {% if current_user.is_authenticated %}
+
+                            <a
+                                href="{{ url_for('edit_kajian', id=kajian.id) }}"
+                                class="btn btn-outline-warning btn-sm"
+                            >
+                                Edit
+                            </a>
+
+                            <form
+                                method="post"
+                                action="{{ url_for('hapus_kajian', id=kajian.id) }}"
+                                class="d-inline"
+                            >
+
+                                {{ form.hidden_tag() }}
+
+                                <button
+                                    type="submit"
+                                    class="btn btn-outline-danger btn-sm"
+                                    onclick="return confirm('Hapus kajian beserta seluruh dokumennya?')"
+                                >
+                                    Hapus
+                                </button>
+
+                            </form>
+
+                        {% endif %}
 
                     </td>
 

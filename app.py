@@ -7,7 +7,7 @@ from flask_bootstrap import Bootstrap5
 from flask_login import LoginManager, login_required
 
 from auth import auth_bp
-from forms import DokumenForm, KajianForm, csrf
+from forms import DokumenForm, EmptyForm, KajianForm, csrf
 from models import Dokumen, Kajian, User, db
 from services import DriveFile, drive
 
@@ -115,6 +115,12 @@ def get_kajian(id: int) -> Kajian:
         id,
     )
 
+def get_dokumen(id: int) -> Dokumen:
+    """Mengambil data dokumen berdasarkan ID."""
+    return db.get_or_404(
+        Dokumen,
+        id,
+    )
 
 def render_kajian_form(
     form: KajianForm,
@@ -185,9 +191,12 @@ def home() -> str:
         .all()
     )
 
+    form = EmptyForm()
+
     return render_template(
         "index.html",
-        kajian_list=kajian_list
+        kajian_list=kajian_list,
+        form=form,
     )
 
 
@@ -379,7 +388,6 @@ def upload(kajian_id: int) -> ResponseReturnValue:
             judul=form.judul.data,
             nama_file=uploaded.filename,
             mime_type=uploaded.mimetype,
-            urutan=form.urutan.data,
             drive_file_id=drive_file_id,
         )
 
@@ -454,17 +462,83 @@ def hapus_kajian(id: int) -> ResponseReturnValue:
 
     kajian = get_kajian(id)
 
-    db.session.delete(kajian)
-    db.session.commit()
+    try:
+
+        drive.delete_folder(
+            kajian.drive_folder_id,
+        )
+
+        db.session.delete(
+            kajian,
+        )
+
+        db.session.commit()
+
+        flash(
+            "Kajian berhasil dihapus.",
+            "success",
+        )
+
+    except Exception:
+
+        db.session.rollback()
+
+        flash(
+            "Kajian gagal dihapus.",
+            "danger",
+        )
 
     return redirect(
         url_for("home")
     )
 
+# ==============================================================================
+# HAPUS DOKUMEN
+# ==============================================================================
+
+@app.post("/dokumen/<int:id>/hapus")
+@login_required
+def hapus_dokumen(id: int) -> ResponseReturnValue:
+
+    dokumen = get_dokumen(id)
+    kajian_id = dokumen.kajian_id
+
+    try:
+
+        drive.delete_file(
+            dokumen.drive_file_id,
+        )
+
+        db.session.delete(
+            dokumen,
+        )
+
+        db.session.commit()
+
+        flash(
+            "Dokumen berhasil dihapus.",
+            "success",
+        )
+
+    except Exception:
+
+        db.session.rollback()
+
+        flash(
+            "Dokumen gagal dihapus.",
+            "danger",
+        )
+
+    return redirect(
+        url_for(
+            "detail_kajian",
+            id=kajian_id,
+        )
+    )
 
 # ==============================================================================
 # MAIN
 # ==============================================================================
 
 if __name__ == "__main__":
-    app.run()
+    app.run(debug=True)
