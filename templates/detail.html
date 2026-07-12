@@ -116,7 +116,7 @@
 
         <form
             method="post"
-            action="{{ url_for('upload_dokumen', kajian_id=kajian.id) }}"
+            action="{{ url_for('upload', kajian_id=kajian.id) }}"
             enctype="multipart/form-data"
             novalidate
         >
@@ -289,7 +289,7 @@
                             </span>
 
                             <a
-                                href="{{ url_for('download_dokumen', id=dokumen.id) }}"
+                                href="{{ url_for('download', id=dokumen.id) }}"
                                 class="btn btn-outline-primary btn-sm"
                             >
                                 <i class="bi bi-download me-1"></i>

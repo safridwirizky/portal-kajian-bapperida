@@ -1,10 +1,11 @@
+from io import BytesIO
 from pathlib import Path
 
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
-from googleapiclient.http import MediaIoBaseUpload
+from googleapiclient.http import MediaIoBaseDownload, MediaIoBaseUpload
 
 from .drive_types import DriveFile
 
@@ -99,7 +100,7 @@ class GoogleDrive:
     # File
     # ==========================================================================
 
-    def upload_file(
+    def upload(
         self,
         folder_id: str,
         file: DriveFile,
@@ -128,6 +129,35 @@ class GoogleDrive:
         )
 
         return response["id"]
+    
+    def download(
+        self,
+        file_id: str,
+    ) -> BytesIO:
+        """Mengunduh file dari Google Drive."""
+
+        request = (
+            self.service.files()
+            .get_media(
+                fileId=file_id,
+            )
+        )
+
+        stream = BytesIO()
+
+        downloader = MediaIoBaseDownload(
+            stream,
+            request,
+        )
+
+        done = False
+
+        while not done:
+            _, done = downloader.next_chunk()
+
+        stream.seek(0)
+
+        return stream
 
     def delete(
         self,

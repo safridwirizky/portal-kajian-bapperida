@@ -1,7 +1,7 @@
 from datetime import datetime
 import os
 
-from flask import current_app, Flask, flash, redirect, render_template, url_for
+from flask import current_app, Flask, flash, redirect, render_template, send_file, url_for
 from flask.typing import ResponseReturnValue
 from flask_bootstrap import Bootstrap5
 from flask_login import LoginManager, login_required
@@ -12,8 +12,12 @@ from models import Dokumen, Kajian, User, db
 from services import DriveFile, drive
 
 
-DEFAULT_ADMIN_USERNAME = "admin"
-DEFAULT_ADMIN_PASSWORD = "admin123"
+DEFAULT_ADMIN_USERNAME = os.getenv(
+    "DEFAULT_ADMIN_USERNAME"
+)
+DEFAULT_ADMIN_PASSWORD = os.getenv(
+    "DEFAULT_ADMIN_PASSWORD"
+)
 
 BULAN = (
     "Januari",
@@ -346,7 +350,7 @@ def update_kajian(id: int) -> ResponseReturnValue:
 
 @app.post("/kajian/<int:kajian_id>/dokumen")
 @login_required
-def upload_dokumen(kajian_id: int) -> ResponseReturnValue:
+def upload(kajian_id: int) -> ResponseReturnValue:
     kajian = get_kajian(kajian_id)
 
     form = DokumenForm()
@@ -365,7 +369,7 @@ def upload_dokumen(kajian_id: int) -> ResponseReturnValue:
     drive_file_id = None
 
     try:
-        drive_file_id = drive.upload_file(
+        drive_file_id = drive.upload(
             folder_id=kajian.drive_folder_id,
             file=uploaded,
         )
@@ -415,6 +419,30 @@ def upload_dokumen(kajian_id: int) -> ResponseReturnValue:
         )
     )
 
+# ==============================================================================
+# DOWNLOAD FILE KAJIAN
+# ==============================================================================
+
+@app.get("/dokumen/<int:id>/download")
+def download(
+    id: int,
+) -> ResponseReturnValue:
+
+    dokumen = db.get_or_404(
+        Dokumen,
+        id,
+    )
+
+    stream = drive.download(
+        dokumen.drive_file_id,
+    )
+
+    return send_file(
+        stream,
+        mimetype=dokumen.mime_type,
+        as_attachment=True,
+        download_name=dokumen.nama_file,
+    )
 
 # ==============================================================================
 # HAPUS KAJIAN
@@ -439,4 +467,4 @@ def hapus_kajian(id: int) -> ResponseReturnValue:
 # ==============================================================================
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run()
