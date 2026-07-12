@@ -110,6 +110,64 @@ class GoogleDrive:
             name=name,
             parent_id=parent_id,
         )
+    
+    def rename_folder(
+        self,
+        folder_id: str,
+        new_name: str,
+    ) -> None:
+        """Mengubah nama folder."""
+
+        self._rename(
+            folder_id,
+            new_name,
+        )
+
+    def move_kajian_folder(
+        self,
+        folder_id: str,
+        tahun: int,
+    ) -> None:
+        """Memindahkan folder kajian ke folder tahun."""
+
+        old_parent_id = self._get_parent_folder_id(
+            folder_id,
+        )
+
+        portal_folder_id = self.get_or_create_folder(
+            self.ROOT_FOLDER_NAME,
+        )
+
+        new_parent_id = self.get_or_create_folder(
+            str(tahun),
+            parent_id=portal_folder_id,
+        )
+
+        self._move(
+            folder_id,
+            old_parent_id,
+            new_parent_id,
+        )
+
+        self._cleanup_empty_parent(
+            old_parent_id,
+        )
+
+    def delete_folder(
+        self,
+        folder_id: str,
+    ) -> None:
+        """Menghapus folder dari Google Drive."""
+
+        parent_folder_id = self._get_parent_folder_id(
+            folder_id,
+        )
+
+        self._delete(
+            folder_id,
+        )
+
+        self._cleanup_empty_parent(parent_folder_id)
 
     # ==========================================================================
     # File
@@ -187,6 +245,18 @@ class GoogleDrive:
             response.content,
         )
 
+    def rename_file(
+        self,
+        file_id: str,
+        new_name: str,
+    ) -> None:
+        """Mengubah nama file."""
+
+        self._rename(
+            file_id,
+            new_name,
+        )
+
     def delete_file(
         self,
         file_id: str,
@@ -197,31 +267,46 @@ class GoogleDrive:
             file_id,
         )
 
-    def delete_folder(
-        self,
-        folder_id: str,
-    ) -> None:
-        """Menghapus folder dari Google Drive."""
-
-        parent_folder_id = self._get_parent_folder_id(
-            folder_id,
-        )
-
-        self._delete(
-            folder_id,
-        )
-
-        if (
-            parent_folder_id
-            and self._is_folder_empty(parent_folder_id)
-        ):
-            self._delete(
-                parent_folder_id,
-            )
-
     # ==========================================================================
     # Private
     # ==========================================================================
+
+    def _rename(
+        self,
+        resource_id: str,
+        new_name: str,
+    ) -> None:
+        """Mengubah nama file atau folder."""
+
+        (
+            self._files()
+            .update(
+                fileId=resource_id,
+                body={
+                    "name": new_name,
+                },
+            )
+            .execute()
+        )
+
+    def _move(
+        self,
+        resource_id: str,
+        old_parent_id: str,
+        new_parent_id: str,
+    ) -> None:
+        """Memindahkan file atau folder."""
+
+        (
+            self._files()
+            .update(
+                fileId=resource_id,
+                addParents=new_parent_id,
+                removeParents=old_parent_id,
+                fields="id",
+            )
+            .execute()
+        )
 
     def _delete(
         self,
@@ -237,29 +322,36 @@ class GoogleDrive:
             .execute()
         )
     
-    def _is_folder_empty(
+    def _cleanup_empty_parent(
         self,
-        folder_id: str,
-    ) -> bool:
-        """Mengembalikan True jika folder tidak memiliki isi."""
+        parent_id: str | None,
+    ) -> None:
+        """Menghapus parent folder jika sudah kosong."""
 
-        response = (
+        if parent_id is None:
+            return
+
+        files = (
             self._files()
             .list(
                 q=(
-                    f"'{folder_id}' in parents "
+                    f"'{parent_id}' in parents "
                     "and trashed=false"
                 ),
                 fields="files(id)",
                 pageSize=1,
             )
             .execute()
+            .get(
+                "files",
+                [],
+            )
         )
 
-        return not response.get(
-            "files",
-            [],
-        )
+        if files:
+            return
+
+        self._delete(parent_id)
 
     def _get_parent_folder_id(
         self,

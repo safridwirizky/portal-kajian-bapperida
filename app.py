@@ -335,20 +335,67 @@ def update_kajian(id: int) -> ResponseReturnValue:
         return render_kajian_form(
             form=form,
             is_edit=True,
-            kajian=kajian
+            kajian=kajian,
         )
 
-    save_kajian(
-        kajian=kajian,
-        form=form
+    old_judul = kajian.judul
+    old_tahun = kajian.tahun
+
+    tahun_changed = (
+        form.tahun.data != old_tahun
     )
 
-    db.session.commit()
+    judul_changed = (
+        form.judul.data != old_judul
+    )
+
+    try:
+
+        if tahun_changed:
+
+            drive.move_kajian_folder(
+                kajian.drive_folder_id,
+                form.tahun.data,
+            )
+
+        if judul_changed:
+
+            drive.rename_folder(
+                kajian.drive_folder_id,
+                form.judul.data,
+            )
+
+        save_kajian(
+            kajian=kajian,
+            form=form,
+        )
+
+        db.session.commit()
+
+    except Exception:
+
+        db.session.rollback()
+
+        current_app.logger.exception(
+            "Gagal memperbarui kajian."
+        )
+
+        flash(
+            "Kajian gagal diperbarui.",
+            "danger",
+        )
+
+    else:
+
+        flash(
+            "Kajian berhasil diperbarui.",
+            "success",
+        )
 
     return redirect(
         url_for(
             "detail_kajian",
-            id=kajian.id
+            id=kajian.id,
         )
     )
 
