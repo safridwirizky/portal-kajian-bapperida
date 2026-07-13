@@ -1,10 +1,11 @@
 from datetime import datetime
 import os
 
-from flask import current_app, Flask, flash, redirect, render_template, send_file, url_for
+from flask import current_app, Flask, flash, redirect, render_template, request, send_file, url_for
 from flask.typing import ResponseReturnValue
 from flask_bootstrap import Bootstrap5
 from flask_login import LoginManager, login_required
+from sqlalchemy import or_
 
 from auth import auth_bp
 from forms import DokumenForm, EmptyForm, KajianForm, csrf
@@ -182,8 +183,34 @@ def format_tanggal(
 @app.get("/")
 def home() -> str:
 
+    search = request.args.get(
+        "search",
+        "",
+    ).strip()
+
+    query = Kajian.query
+
+    if search:
+
+        keyword = f"%{search}%"
+
+        filters = [
+            Kajian.judul.ilike(keyword),
+            Kajian.deskripsi.ilike(keyword),
+            Kajian.hasil.ilike(keyword),
+        ]
+
+        if search.isdigit():
+            filters.append(
+                Kajian.tahun == int(search)
+            )
+
+        query = query.filter(
+            or_(*filters)
+        )
+
     kajian_list = (
-        Kajian.query
+        query
         .order_by(
             Kajian.tahun.desc(),
             Kajian.judul.asc(),
@@ -197,6 +224,7 @@ def home() -> str:
         "index.html",
         kajian_list=kajian_list,
         form=form,
+        search=search,
     )
 
 

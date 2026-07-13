@@ -1,3 +1,23 @@
 .pre-line {
     white-space: pre-line;
 }
+
+.deskripsi {
+    max-width: 420px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.col-tahun {
+    width: 5%;
+}
+
+.col-judul {
+    width: 25%;
+}
+
+.col-aksi {
+    width: 15%;
+}

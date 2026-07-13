@@ -42,6 +42,41 @@
 
 </div>
 
+<form
+    method="get"
+    class="row g-2 mb-4"
+>
+    <div class="col">
+        <input
+            class="form-control"
+            type="search"
+            name="search"
+            value="{{ search }}"
+            placeholder="Cari judul, deskripsi, hasil, atau tahun..."
+        >
+    </div>
+
+    <div class="col-auto">
+        <button
+            class="btn btn-primary"
+            type="submit"
+        >
+            Cari
+        </button>
+    </div>
+
+    {% if search %}
+    <div class="col-auto">
+        <a
+            href="{{ url_for('home') }}"
+            class="btn btn-outline-secondary"
+        >
+            Reset
+        </a>
+    </div>
+    {% endif %}
+</form>
+
 {% if kajian_list %}
 
     <div class="table-responsive">
@@ -52,15 +87,19 @@
 
                 <tr>
 
-                    <th style="width: 120px;">
+                    <th class="col-tahun">
                         Tahun
                     </th>
 
-                    <th>
+                    <th class="col-judul">
                         Judul Kajian
                     </th>
 
                     <th>
+                        Deskripsi
+                    </th>
+
+                    <th class="col-aksi">
                         Aksi
                     </th>
 
@@ -87,6 +126,10 @@
                             {{ kajian.judul }}
                         </a>
 
+                    </td>
+
+                    <td class="deskripsi text-muted">
+                        {{ kajian.deskripsi }}
                     </td>
 
                     <td>
