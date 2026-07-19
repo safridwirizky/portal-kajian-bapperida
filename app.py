@@ -42,10 +42,7 @@ BULAN = (
 
 app = Flask(__name__)
 
-app.config["SECRET_KEY"] = os.getenv(
-    "SECRET_KEY",
-    "development-secret",
-)
+app.config["SECRET_KEY"] = os.getenv("SECRET_KEY")
 
 app.config["SQLALCHEMY_DATABASE_URI"] = (
     "sqlite:///" + os.path.join(app.instance_path, "kajian.db")
@@ -616,4 +613,4 @@ def hapus_dokumen(id: int) -> ResponseReturnValue:
 # ==============================================================================
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run()
