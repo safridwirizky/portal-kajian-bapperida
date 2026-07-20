@@ -44,6 +44,9 @@ app = Flask(__name__)
 
 app.config["SECRET_KEY"] = os.getenv("SECRET_KEY")
 
+# Buat folder instance jika belum ada
+os.makedirs(app.instance_path, exist_ok=True)
+
 app.config["SQLALCHEMY_DATABASE_URI"] = (
     "sqlite:///" + os.path.join(app.instance_path, "kajian.db")
 )
