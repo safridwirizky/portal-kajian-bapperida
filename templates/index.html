@@ -36,52 +36,42 @@
 
     </div>
 
-    <small class="text-muted">
+    <small
+        id="jumlahKajian"
+        class="text-muted"
+    >
         Menampilkan {{ kajian_list|length }} kajian
     </small>
 
 </div>
 
-<form
-    method="get"
-    class="row g-2 mb-4"
->
+<div class="row mb-4">
+
     <div class="col">
+
         <input
+            id="searchInput"
             class="form-control"
             type="search"
-            name="search"
-            value="{{ search }}"
-            placeholder="Cari judul, deskripsi, hasil, atau tahun..."
+            placeholder="Cari judul, deskripsi, atau tahun..."
+            autocomplete="off"
         >
+
     </div>
 
-    <div class="col-auto">
-        <button
-            class="btn btn-primary"
-            type="submit"
-        >
-            Cari
-        </button>
-    </div>
-
-    {% if search %}
-    <div class="col-auto">
-        <a
-            href="{{ url_for('home') }}"
-            class="btn btn-outline-secondary"
-        >
-            Reset
-        </a>
-    </div>
-    {% endif %}
-</form>
+</div>
 
 {% if kajian_list %}
 
-    <div class="table-responsive">
+    <div
+        id="tableContainer"
+        class="table-responsive"
+    >
 
-        <table class="table table-hover align-middle">
+        <table
+            id="kajianTable"
+            class="table table-hover align-middle"
+        >
 
             <thead class="table-light">
 
@@ -111,7 +101,13 @@
 
                 {% for kajian in kajian_list %}
 
-                <tr>
+                <tr
+                    data-search="{{ (
+                        kajian.judul ~ ' ' ~
+                        kajian.deskripsi ~ ' ' ~
+                        kajian.tahun
+                    )|lower }}"
+                >
 
                     <td>
                         {{ kajian.tahun }}
@@ -179,6 +175,29 @@
 
     </div>
 
+    <!-- Empty state saat pencarian tidak menemukan hasil -->
+    <div
+        id="searchEmptyState"
+        class="text-center py-5 d-none"
+    >
+
+        <i class="bi bi-search display-3 text-secondary"></i>
+
+        <h5 class="mt-4">
+            Tidak menemukan kajian
+        </h5>
+
+        <p class="text-muted mb-1">
+            Kami tidak menemukan kajian yang sesuai dengan pencarian
+            <strong id="searchKeyword"></strong>.
+        </p>
+
+        <small class="text-secondary">
+            Coba gunakan kata kunci lain atau periksa kembali ejaannya.
+        </small>
+
+    </div>
+
 {% else %}
 
     <div class="text-center py-5">
@@ -198,5 +217,13 @@
     </div>
 
 {% endif %}
+
+{% endblock %}
+
+{% block scripts %}
+
+{{ super() }}
+
+<script src="{{ url_for('static', filename='js/home.js') }}"></script>
 
 {% endblock %}
