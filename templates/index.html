@@ -77,19 +77,19 @@
 
                 <tr>
 
-                    <th class="col-tahun">
+                    <th class="col-tahun text-center">
                         Tahun
                     </th>
 
-                    <th class="col-judul">
+                    <th class="col-judul text-center">
                         Judul Kajian
                     </th>
 
-                    <th>
+                    <th class="text-center">
                         Deskripsi
                     </th>
 
-                    <th class="col-aksi">
+                    <th class="col-aksi text-center">
                         Aksi
                     </th>
 
@@ -125,14 +125,19 @@
                     </td>
 
                     <td class="text-muted">
-
-                        <div class="deskripsi">
+                        <div
+                            class="deskripsi"
+                            data-bs-toggle="tooltip"
+                            data-bs-placement="top"
+                            title="{{ kajian.deskripsi }}"
+                        >
                             {{ kajian.deskripsi }}
                         </div>
-                        
                     </td>
 
                     <td>
+
+                        <div class="col-aksi btn">
 
                         {% if current_user.is_authenticated %}
 
@@ -162,6 +167,8 @@
                             </form>
 
                         {% endif %}
+
+                        </div>
 
                     </td>
 
