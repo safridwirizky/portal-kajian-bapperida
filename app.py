@@ -155,7 +155,7 @@ def save_kajian(
 @app.context_processor
 def inject_app_name() -> dict[str, str]:
     return {
-        "APP_NAME": "Portal Kajian Bapperida Kabupaten Rote Ndao"
+        "APP_NAME": "Sistem Informasi Riset Daerah"
     }
 
 

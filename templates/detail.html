@@ -272,31 +272,31 @@
 
                             </a>
 
-                        </div>
+                            {% if current_user.is_authenticated %}
 
-                        {% if current_user.is_authenticated %}
-
-                        <form
-                            method="post"
-                            action="{{ url_for('hapus_dokumen', id=dokumen.id) }}"
-                            class="d-inline"
-                        >
-
-                            {{ form.csrf_token }}
-
-                            <button
-                                type="submit"
-                                class="btn btn-outline-danger btn-sm"
-                                onclick="return confirm('Hapus dokumen ini?')"
+                            <form
+                                method="post"
+                                action="{{ url_for('hapus_dokumen', id=dokumen.id) }}"
+                                class="d-inline m-0"
                             >
-                                <i class="bi bi-trash"></i>
 
-                                Hapus
-                            </button>
+                                {{ form.csrf_token }}
 
-                        </form>
+                                <button
+                                    type="submit"
+                                    class="btn btn-outline-danger btn-sm"
+                                    onclick="return confirm('Hapus dokumen ini?')"
+                                >
+                                    <i class="bi bi-trash"></i>
 
-                        {% endif %}
+                                    Hapus
+                                </button>
+
+                            </form>
+
+                            {% endif %}
+
+                        </div>
 
                     </div>
 
