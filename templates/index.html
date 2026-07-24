@@ -89,9 +89,13 @@
                         Deskripsi
                     </th>
 
+                    {% if current_user.is_authenticated %}
+
                     <th class="col-aksi text-center">
                         Aksi
                     </th>
+
+                    {% endif %}
 
                 </tr>
 
@@ -135,11 +139,11 @@
                         </div>
                     </td>
 
+                    {% if current_user.is_authenticated %}
+
                     <td>
 
                         <div class="col-aksi btn">
-
-                        {% if current_user.is_authenticated %}
 
                             <a
                                 href="{{ url_for('edit_kajian', id=kajian.id) }}"
@@ -166,11 +170,11 @@
 
                             </form>
 
-                        {% endif %}
-
                         </div>
 
                     </td>
+
+                    {% endif %}
 
                 </tr>
 
