@@ -106,6 +106,13 @@
                 {% for kajian in kajian_list %}
 
                 <tr
+                    class="kajian-row"
+                    data-href="{{
+                        url_for(
+                            'detail_kajian',
+                            id=kajian.id
+                        )
+                    }}"
                     data-search="{{ (
                         kajian.judul ~ ' ' ~
                         kajian.deskripsi ~ ' ' ~
@@ -119,18 +126,22 @@
 
                     <td>
 
-                        <a
-                            href="{{ url_for('detail_kajian', id=kajian.id) }}"
-                            class="text-decoration-none fw-semibold"
+                        <div 
+                            class="judul-kajian text-clamp"
+                            data-bs-toggle="tooltip"
+                            data-bs-placement="top"
+                            title="{{ kajian.judul }}"
                         >
+                        
                             {{ kajian.judul }}
-                        </a>
+
+                        </div>
 
                     </td>
 
                     <td class="text-muted">
                         <div
-                            class="deskripsi"
+                            class="deskripsi text-clamp"
                             data-bs-toggle="tooltip"
                             data-bs-placement="top"
                             title="{{ kajian.deskripsi }}"
@@ -141,13 +152,13 @@
 
                     {% if current_user.is_authenticated %}
 
-                    <td>
+                    <td class="col-aksi align-middle">
 
-                        <div class="col-aksi btn">
+                        <div class="d-flex justify-content-center gap-2">
 
                             <a
                                 href="{{ url_for('edit_kajian', id=kajian.id) }}"
-                                class="btn btn-outline-warning btn-sm"
+                                class="btn btn-outline-warning btn-sm btn-aksi"
                             >
                                 Edit
                             </a>
@@ -155,15 +166,14 @@
                             <form
                                 method="post"
                                 action="{{ url_for('hapus_kajian', id=kajian.id) }}"
-                                class="d-inline"
+                                class="form-hapus d-inline"
                             >
 
                                 {{ form.hidden_tag() }}
 
                                 <button
                                     type="submit"
-                                    class="btn btn-outline-danger btn-sm"
-                                    onclick="return confirm('Hapus kajian beserta seluruh dokumennya?')"
+                                    class="btn btn-outline-danger btn-sm btn-aksi"
                                 >
                                     Hapus
                                 </button>

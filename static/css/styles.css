@@ -2,6 +2,17 @@
     white-space: pre-line;
 }
 
+.judul-kajian {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+
+    overflow: hidden;
+    line-height: 1.5;
+
+    font-weight: 600;
+}
+
 .deskripsi {
     max-width: 650px;
     padding-right: 2rem;
@@ -33,6 +44,20 @@
 
 .col-aksi .btn {
     min-width: 55px;
+}
+
+.kajian-row {
+    cursor: pointer;
+    transition: background-color .15s ease;
+}
+
+.kajian-row:hover {
+    background-color: #f8f9fa;
+}
+
+.kajian-row:hover .judul-kajian {
+    color: var(--bs-primary);
+    font-weight: 500;
 }
 
 .tooltip {
